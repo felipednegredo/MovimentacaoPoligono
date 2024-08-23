@@ -6,6 +6,7 @@ using lista_vertices = std::vector<vertice>;
 using aresta = std::pair<int, int>;
 using lista_arestas = std::vector<aresta>;
 
+// Estrutura de dados para representar um poligono
 struct Poligono {
 	double tamanhoLado;
 	int numLados;
@@ -16,6 +17,7 @@ struct Poligono {
 	lista_arestas arestas;
 };
 
+// Funcao para criar um poligono regular
 Poligono criar_poligono(double posicao_x, double posicao_y, double tamanho_lado, int num_lados);
 void desenhar(Poligono poligono);
 void movimentar(Poligono& poligono, double distancia, double angulo);
@@ -27,17 +29,19 @@ void keyboard(unsigned char key, int x, int y);
 void keyboard_special(int key, int x, int y);
 
 Poligono pentagono;
+
 int delay = 10;
 
 int main(int argc, char** argv) {
 
+	// Cria figura com tamanho X e Y, com tamanho de lado Z e W lados
 	pentagono = criar_poligono(128, 128, 30, 5);
 
 	glutInit(&argc, argv);
 
 	glutInitWindowSize(512, 512);
 
-	glutCreateWindow("Desenhando uma linha");
+	glutCreateWindow("Movimentação escalar, rotacioanar e movimentar");
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glOrtho(0, 256, 0, 256, -1, 1);
 
@@ -73,25 +77,50 @@ void keyboard(unsigned char key, int x, int y) {
 }
 
 void keyboard_special(int key, int x, int y) {
-	std::cout << key;
+	std::string key_string;
 	switch (key) {
 	case GLUT_KEY_DOWN:
+		key_string = "DOWN";
 		movimentar(pentagono, 10, (270 / 180.0) * 3.1416);
 		break;
 
 	case GLUT_KEY_UP:
+		key_string = "UP";
 		movimentar(pentagono, 10, (90 / 180.0) * 3.1416);
 		break;
 
 	case GLUT_KEY_RIGHT:
+		key_string = "RIGHT";
 		movimentar(pentagono, 10, (0 / 180.0) * 3.1416);
 		break;
 
 	case GLUT_KEY_LEFT:
+		key_string = "LEFT";
 		movimentar(pentagono, 10, (180 / 180.0) * 3.1416);
 		break;
 
+	case GLUT_KEY_F1:
+		key_string = "F1";
+		rotacionar(pentagono, (10 / 180.0) * 3.1416);
+		break;
+
+	case GLUT_KEY_F2:
+		key_string = "F2";
+		rotacionar(pentagono, (-10 / 180.0) * 3.1416);
+		break;
+
+	case GLUT_KEY_F3:
+		key_string = "F3";
+		escalar(pentagono, 1.1, 1.1);
+		break;
+
+	case GLUT_KEY_F4:
+		key_string = "F4";
+		escalar(pentagono, 0.9, 0.9);
+		break;
+
 	}
+	std::cout << key_string << std::endl;
 }
 
 void redraw(int value) {
@@ -140,23 +169,70 @@ Poligono criar_poligono(double posicao_x, double posicao_y, double tamanho_lado,
 }
 
 void movimentar(Poligono& poligono, double distancia, double angulo) {
+	poligono.posicao.first += distancia * cos(angulo);
+	poligono.posicao.second += distancia * sin(angulo);
+	for (int i = 0; i < poligono.vertices.size(); i++) {
+		poligono.vertices[i].first += distancia * cos(angulo);
+		poligono.vertices[i].second += distancia * sin(angulo);
+	}
 	
 }
 
 void escalar(Poligono& poligono, double escala_x, double escala_y) {
-	
+    // Calcula as coordenadas do ponto fixo em relação à origem
+    double xPontoFixo = poligono.posicao.first;
+    double yPontoFixo = poligono.posicao.second;
+
+    // Atualiza a escala do polígono
+    poligono.escala.first *= escala_x;
+    poligono.escala.second *= escala_y;
+
+    // Para cada vértice do polígono, ajusta as coordenadas em relação ao ponto fixo
+    for (int i = 0; i < poligono.vertices.size(); i++) {
+        // Calcula as coordenadas do vértice em relação ao ponto fixo
+        double xVertice = poligono.vertices[i].first - xPontoFixo;
+        double yVertice = poligono.vertices[i].second - yPontoFixo;
+
+        // Aplica a escala às coordenadas do vértice
+        double xEscalado = xVertice * escala_x;
+        double yEscalado = yVertice * escala_y;
+
+        // Atualiza as coordenadas do vértice com base no ponto fixo
+        poligono.vertices[i].first = xEscalado + xPontoFixo;
+        poligono.vertices[i].second = yEscalado + yPontoFixo;
+    }
 }
 
-void rotacionar(Poligono& poligono, double angulo) {
+ void rotacionar(Poligono& poligono, double angulo) {
+        // Calcula as coordenadas do ponto fixo em relação à origem
+        double xPontoFixo = poligono.posicao.first;
+        double yPontoFixo = poligono.posicao.second;
 
+        for (int i = 0; i < poligono.vertices.size(); i++) {
+            // Calcula as coordenadas do vértice em relação ao ponto fixo
+            double xVertice = poligono.vertices[i].first - xPontoFixo;
+            double yVertice = poligono.vertices[i].second - yPontoFixo;
+
+            // Aplica a rotação às coordenadas do vértice
+            double xRotacionado = xVertice * cos(angulo) - yVertice * sin(angulo);
+            double yRotacionado = xVertice * sin(angulo) + yVertice * cos(angulo);
+
+            // Atualiza as coordenadas do vértice com base no ponto fixo
+            poligono.vertices[i].first = xRotacionado + xPontoFixo;
+            poligono.vertices[i].second = yRotacionado + yPontoFixo;
+        }
 }
 
 void desenhar(Poligono poligono) {
+	// Desenha o poligono
 	glColor3f(0.0, 0.0, 0.0);
+	// Desenha as arestas do poligono
 	glBegin(GL_LINES);
 	for (int i = 0; i < poligono.arestas.size(); i++) {
+		// Desenha a aresta i do poligono
 		float v_o = poligono.arestas[i].first;
 		float v_d = poligono.arestas[i].second;
+		// Desenha a aresta que liga os vertices v_o e v_d
 		glVertex2f(poligono.vertices[v_o].first, poligono.vertices[v_o].second);
 		glVertex2f(poligono.vertices[v_d].first, poligono.vertices[v_d].second);
 	}
